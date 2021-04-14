@@ -17,6 +17,20 @@ Play Online as well as Offline Songs<br>
 <img src="https://github.com/Sangwan5688/BlackHole/blob/main/Screenshots/home.png?raw=true" width="30%"></img> <img src="https://github.com/Sangwan5688/BlackHole/blob/main/Screenshots/play.png?raw=true" width="30%"></img> <img src="https://github.com/Sangwan5688/BlackHole/blob/main/Screenshots/local200.png?raw=true" width="30%"></img> <img src="https://github.com/Sangwan5688/BlackHole/blob/main/Screenshots/global200.png?raw=true" width="30%"></img> <img src="https://github.com/Sangwan5688/BlackHole/blob/main/Screenshots/mymusic.png?raw=true" width="30%"></img> <img src="https://github.com/Sangwan5688/BlackHole/blob/main/Screenshots/favorites.png?raw=true" width="30%"></img> 
 
 # What's New
+## v1.3
+### Fixed:
+Song not downloading in Android 11.<br>
+Bottom Navigation Bar not changing with swipe.<br>
+Global Top 200 not showing correctly.<br>
+Song not stopping after app exit.<br>
+Notification couldn't be swiped to stop when paused.<br>
+Minor Bug fixes
+### New Features
+Added Sleep Timer.<br>
+Added support for different music languages.<br>
+Added Shuffle and Repeat in Offline Mode.<br>
+Minor changes
+
 ## v1.2
 ### Fixed:
 Search bar remaining 3/4 after screen change.<br>
