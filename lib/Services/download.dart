@@ -168,23 +168,30 @@ class Download with ChangeNotifier {
                         bool rememberValue,
                         Widget? child,
                       ) {
-                        return Row(
-                          children: [
-                            Checkbox(
-                              activeColor:
-                                  Theme.of(context).colorScheme.secondary,
-                              value: rememberValue,
-                              onChanged: (bool? value) {
-                                remember.value = value ?? false;
-                              },
-                            ),
-                            Text(
-                              AppLocalizations.of(context)!.rememberChoice,
-                            ),
-                          ],
+                        return SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: [
+                              Checkbox(
+                                activeColor:
+                                    Theme.of(context).colorScheme.secondary,
+                                value: rememberValue,
+                                onChanged: (bool? value) {
+                                  remember.value = value ?? false;
+                                },
+                              ),
+                              Text(
+                                AppLocalizations.of(context)!.rememberChoice,
+                              ),
+                            ],
+                          ),
                         );
+                        //this
                       },
                     ),
+                    SingleChildScrollView(
+                     scrollDirection: Axis.horizontal,
+                      child:
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
@@ -250,7 +257,9 @@ class Download with ChangeNotifier {
                           width: 5,
                         ),
                       ],
-                    ),
+                    ),),
+
+                    //shitrow
                   ],
                 ),
               ],
