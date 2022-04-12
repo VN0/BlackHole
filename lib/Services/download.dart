@@ -186,7 +186,6 @@ class Download with ChangeNotifier {
                             ],
                           ),
                         );
-                        //this
                       },
                     ),
                     SingleChildScrollView(
@@ -258,8 +257,6 @@ class Download with ChangeNotifier {
                         ),
                       ],
                     ),),
-
-                    //shitrow
                   ],
                 ),
               ],
