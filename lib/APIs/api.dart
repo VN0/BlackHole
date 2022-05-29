@@ -104,22 +104,58 @@ class SaavnAPI {
     return result;
   }
 
-  Future<Map> getSongFromToken(String token, String type) async {
-    final String params = "token=$token&type=$type&${endpoints['fromToken']}";
-    try {
-      final res = await getResponse(params);
-      if (res.statusCode == 200) {
-        final Map getMain = json.decode(res.body) as Map;
-        if (type == 'album' || type == 'playlist') return getMain;
-        final List responseList = getMain['songs'] as List;
-        return {
-          'songs': await FormatResponse.formatSongsResponse(responseList, type)
-        };
+  Future<Map> getSongFromToken(
+    String token,
+    String type, {
+    int n = 10,
+    int p = 1,
+  }) async {
+    if (n == -1) {
+      final String params =
+          "token=$token&type=$type&n=5&p=$p&${endpoints['fromToken']}";
+      try {
+        final res = await getResponse(params);
+        if (res.statusCode == 200) {
+          final Map getMain = json.decode(res.body) as Map;
+          final String count = getMain['list_count'].toString();
+          final String params2 =
+              "token=$token&type=$type&n=$count&p=$p&${endpoints['fromToken']}";
+          final res2 = await getResponse(params2);
+          if (res2.statusCode == 200) {
+            final Map getMain2 = json.decode(res2.body) as Map;
+            if (type == 'album' || type == 'playlist') return getMain2;
+            final List responseList = getMain2['songs'] as List;
+            return {
+              'songs':
+                  await FormatResponse.formatSongsResponse(responseList, type),
+              'title': getMain2['title'],
+            };
+          }
+        }
+      } catch (e) {
+        log('Error in getSongFromToken: $e');
       }
-    } catch (e) {
-      log('Error in getSongFromToken: $e');
+      return {'songs': List.empty()};
+    } else {
+      final String params =
+          "token=$token&type=$type&n=$n&p=$p&${endpoints['fromToken']}";
+      try {
+        final res = await getResponse(params);
+        if (res.statusCode == 200) {
+          final Map getMain = json.decode(res.body) as Map;
+          if (type == 'album' || type == 'playlist') return getMain;
+          final List responseList = getMain['songs'] as List;
+          return {
+            'songs':
+                await FormatResponse.formatSongsResponse(responseList, type),
+            'title': getMain['title'],
+          };
+        }
+      } catch (e) {
+        log('Error in getSongFromToken: $e');
+      }
+      return {'songs': List.empty()};
     }
-    return {'songs': List.empty()};
   }
 
   Future<List> getReco(String pid) async {
@@ -132,18 +168,23 @@ class SaavnAPI {
     return List.empty();
   }
 
-  Future<String?> createRadio(
-    String name,
-    String language,
-    String stationType,
-  ) async {
+  Future<String?> createRadio({
+    required List<String> names,
+    required String stationType,
+    String? language,
+  }) async {
     String? params;
     if (stationType == 'featured') {
-      params = "name=$name&language=$language&${endpoints['featuredRadio']}";
+      params =
+          "name=${names[0]}&language=$language&${endpoints['featuredRadio']}";
     }
     if (stationType == 'artist') {
       params =
-          "name=$name&query=$name&language=$language&${endpoints['artistRadio']}";
+          "name=${names[0]}&query=${names[0]}&language=$language&${endpoints['artistRadio']}";
+    }
+    if (stationType == 'entity') {
+      params =
+          'entity_id=${names.map((e) => '"$e"').toList()}&entity_type=queue&${endpoints["entityRadio"]}';
     }
 
     final res = await getResponse(params!);
@@ -154,17 +195,24 @@ class SaavnAPI {
     return null;
   }
 
-  Future<List> getRadioSongs(String stationId, {int count = 20}) async {
-    final String params =
-        "stationid=$stationId&k=$count&${endpoints['radioSongs']}";
-    final res = await getResponse(params);
-    if (res.statusCode == 200) {
-      final Map getMain = json.decode(res.body) as Map;
-      final List responseList = [];
-      for (int i = 0; i < count; i++) {
-        responseList.add(getMain[i.toString()]['song']);
+  Future<List> getRadioSongs({
+    required String stationId,
+    int count = 20,
+    int next = 1,
+  }) async {
+    if (count > 0) {
+      final String params =
+          "stationid=$stationId&k=$count&next=$next&${endpoints['radioSongs']}";
+      final res = await getResponse(params);
+      if (res.statusCode == 200) {
+        final Map getMain = json.decode(res.body) as Map;
+        final List responseList = [];
+        for (int i = 0; i < count; i++) {
+          responseList.add(getMain[i.toString()]['song']);
+        }
+        return FormatResponse.formatSongsResponse(responseList, 'song');
       }
-      return FormatResponse.formatSongsResponse(responseList, 'song');
+      return [];
     }
     return [];
   }
@@ -472,12 +520,18 @@ class SaavnAPI {
       final res = await getResponse(params);
       if (res.statusCode == 200) {
         final getMain = json.decode(res.body);
-        final List responseList = getMain['list'] as List;
+        if (getMain['list'] != '') {
+          final List responseList = getMain['list'] as List;
+          return {
+            'songs': await FormatResponse.formatSongsResponse(
+              responseList,
+              'playlist',
+            ),
+            'error': '',
+          };
+        }
         return {
-          'songs': await FormatResponse.formatSongsResponse(
-            responseList,
-            'playlist',
-          ),
+          'songs': List.empty(),
           'error': '',
         };
       } else {

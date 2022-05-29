@@ -34,6 +34,7 @@ import 'package:blackhole/Screens/Player/audioplayer.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_gen/gen_l10n/app_localizations.dart';
 import 'package:hive/hive.dart';
 // import 'package:path_provider/path_provider.dart';
@@ -64,10 +65,20 @@ class _DownloadsState extends State<Downloads>
       Hive.box('settings').get('orderValue', defaultValue: 1) as int;
   int albumSortValue =
       Hive.box('settings').get('albumSortValue', defaultValue: 2) as int;
+  final ScrollController _scrollController = ScrollController();
+  final ValueNotifier<bool> _showShuffle = ValueNotifier<bool>(true);
 
   @override
   void initState() {
     _tcontroller = TabController(length: 4, vsync: this);
+    _scrollController.addListener(() {
+      if (_scrollController.position.userScrollDirection ==
+          ScrollDirection.reverse) {
+        _showShuffle.value = false;
+      } else {
+        _showShuffle.value = true;
+      }
+    });
     // _tcontroller!.addListener(changeTitle);
     // if (tempPath == null) {
     //   getTemporaryDirectory().then((value) {
@@ -82,6 +93,7 @@ class _DownloadsState extends State<Downloads>
   void dispose() {
     super.dispose();
     _tcontroller!.dispose();
+    _scrollController.dispose();
   }
 
   // void changeTitle() {
@@ -97,35 +109,44 @@ class _DownloadsState extends State<Downloads>
 
   void setArtistAlbum() {
     for (final element in _songs) {
-      if (_albums.containsKey(element['album'])) {
-        final List<Map> tempAlbum = _albums[element['album']]!;
-        tempAlbum.add(element as Map);
-        _albums.addEntries([MapEntry(element['album'].toString(), tempAlbum)]);
-      } else {
-        _albums.addEntries([
-          MapEntry(element['album'].toString(), [element as Map])
-        ]);
-      }
+      try {
+        if (_albums.containsKey(element['album'])) {
+          final List<Map> tempAlbum = _albums[element['album']]!;
+          tempAlbum.add(element as Map);
+          _albums
+              .addEntries([MapEntry(element['album'].toString(), tempAlbum)]);
+        } else {
+          _albums.addEntries([
+            MapEntry(element['album'].toString(), [element as Map])
+          ]);
+        }
 
-      if (_artists.containsKey(element['artist'])) {
-        final List<Map> tempArtist = _artists[element['artist']]!;
-        tempArtist.add(element);
-        _artists
-            .addEntries([MapEntry(element['artist'].toString(), tempArtist)]);
-      } else {
-        _artists.addEntries([
-          MapEntry(element['artist'].toString(), [element])
-        ]);
-      }
+        if (_artists.containsKey(element['artist'])) {
+          final List<Map> tempArtist = _artists[element['artist']]!;
+          tempArtist.add(element);
+          _artists
+              .addEntries([MapEntry(element['artist'].toString(), tempArtist)]);
+        } else {
+          _artists.addEntries([
+            MapEntry(element['artist'].toString(), [element])
+          ]);
+        }
 
-      if (_genres.containsKey(element['genre'])) {
-        final List<Map> tempGenre = _genres[element['genre']]!;
-        tempGenre.add(element);
-        _genres.addEntries([MapEntry(element['genre'].toString(), tempGenre)]);
-      } else {
-        _genres.addEntries([
-          MapEntry(element['genre'].toString(), [element])
-        ]);
+        if (_genres.containsKey(element['genre'])) {
+          final List<Map> tempGenre = _genres[element['genre']]!;
+          tempGenre.add(element);
+          _genres
+              .addEntries([MapEntry(element['genre'].toString(), tempGenre)]);
+        } else {
+          _genres.addEntries([
+            MapEntry(element['genre'].toString(), [element])
+          ]);
+        }
+      } catch (e) {
+        // ShowSnackBar().showSnackBar(
+        //   context,
+        //   'Error: $e',
+        // );
       }
     }
 
@@ -199,49 +220,59 @@ class _DownloadsState extends State<Downloads>
   }
 
   void sortAlbums() {
-    if (albumSortValue == 0) {
-      _sortedAlbumKeysList.sort(
-        (a, b) =>
-            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
-      );
-      _sortedArtistKeysList.sort(
-        (a, b) =>
-            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
-      );
-      _sortedGenreKeysList.sort(
-        (a, b) =>
-            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
-      );
-    }
-    if (albumSortValue == 1) {
-      _sortedAlbumKeysList.sort(
-        (b, a) =>
-            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
-      );
-      _sortedArtistKeysList.sort(
-        (b, a) =>
-            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
-      );
-      _sortedGenreKeysList.sort(
-        (b, a) =>
-            a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
-      );
-    }
-    if (albumSortValue == 2) {
-      _sortedAlbumKeysList
-          .sort((b, a) => _albums[a]!.length.compareTo(_albums[b]!.length));
-      _sortedArtistKeysList
-          .sort((b, a) => _artists[a]!.length.compareTo(_artists[b]!.length));
-      _sortedGenreKeysList
-          .sort((b, a) => _genres[a]!.length.compareTo(_genres[b]!.length));
-    }
-    if (albumSortValue == 3) {
-      _sortedAlbumKeysList
-          .sort((a, b) => _albums[a]!.length.compareTo(_albums[b]!.length));
-      _sortedArtistKeysList
-          .sort((a, b) => _artists[a]!.length.compareTo(_artists[b]!.length));
-      _sortedGenreKeysList
-          .sort((a, b) => _genres[a]!.length.compareTo(_genres[b]!.length));
+    switch (albumSortValue) {
+      case 0:
+        _sortedAlbumKeysList.sort(
+          (a, b) =>
+              a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
+        );
+        _sortedArtistKeysList.sort(
+          (a, b) =>
+              a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
+        );
+        _sortedGenreKeysList.sort(
+          (a, b) =>
+              a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
+        );
+        break;
+      case 1:
+        _sortedAlbumKeysList.sort(
+          (b, a) =>
+              a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
+        );
+        _sortedArtistKeysList.sort(
+          (b, a) =>
+              a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
+        );
+        _sortedGenreKeysList.sort(
+          (b, a) =>
+              a.toString().toUpperCase().compareTo(b.toString().toUpperCase()),
+        );
+        break;
+      case 2:
+        _sortedAlbumKeysList
+            .sort((b, a) => _albums[a]!.length.compareTo(_albums[b]!.length));
+        _sortedArtistKeysList
+            .sort((b, a) => _artists[a]!.length.compareTo(_artists[b]!.length));
+        _sortedGenreKeysList
+            .sort((b, a) => _genres[a]!.length.compareTo(_genres[b]!.length));
+        break;
+      case 3:
+        _sortedAlbumKeysList
+            .sort((a, b) => _albums[a]!.length.compareTo(_albums[b]!.length));
+        _sortedArtistKeysList
+            .sort((a, b) => _artists[a]!.length.compareTo(_artists[b]!.length));
+        _sortedGenreKeysList
+            .sort((a, b) => _genres[a]!.length.compareTo(_genres[b]!.length));
+        break;
+      default:
+        _sortedAlbumKeysList
+            .sort((b, a) => _albums[a]!.length.compareTo(_albums[b]!.length));
+        _sortedArtistKeysList
+            .sort((b, a) => _artists[a]!.length.compareTo(_artists[b]!.length));
+        _sortedGenreKeysList
+            .sort((b, a) => _genres[a]!.length.compareTo(_genres[b]!.length));
+        break;
     }
   }
 
@@ -455,6 +486,7 @@ class _DownloadsState extends State<Downloads>
                               deleteSong(item);
                             },
                             songs: _songs,
+                            scrollController: _scrollController,
                           ),
                           AlbumsTab(
                             albums: _albums,
@@ -477,6 +509,79 @@ class _DownloadsState extends State<Downloads>
                           ),
                         ],
                       ),
+                floatingActionButton: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).cardColor,
+                    borderRadius: BorderRadius.circular(100.0),
+                  ),
+                  child: GestureDetector(
+                    onTap: () {
+                      if (_songs.isNotEmpty) {
+                        final tempList = _songs.toList();
+                        tempList.shuffle();
+                        Navigator.of(context).push(
+                          PageRouteBuilder(
+                            opaque: false,
+                            pageBuilder: (_, __, ___) => PlayScreen(
+                              songsList: tempList,
+                              index: 0,
+                              offline: true,
+                              fromMiniplayer: false,
+                              fromDownloads: true,
+                              recommend: false,
+                            ),
+                          ),
+                        );
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(10.0),
+                      child: AnimatedSize(
+                        duration: const Duration(milliseconds: 200),
+                        child: ValueListenableBuilder<bool>(
+                          valueListenable: _showShuffle,
+                          builder: (
+                            BuildContext context,
+                            bool _showFullShuffle,
+                            Widget? child,
+                          ) {
+                            return Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.shuffle_rounded,
+                                  color: Theme.of(context).brightness ==
+                                          Brightness.dark
+                                      ? Colors.white
+                                      : Colors.black,
+                                  size: 24.0,
+                                ),
+                                if (_showFullShuffle)
+                                  const SizedBox(width: 5.0),
+                                if (_showFullShuffle)
+                                  Text(
+                                    AppLocalizations.of(context)!.shuffle,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18.0,
+                                      color: Theme.of(context).brightness ==
+                                              Brightness.dark
+                                          ? Colors.white
+                                          : Colors.black,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                if (_showFullShuffle)
+                                  const SizedBox(width: 2.5),
+                              ],
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
           ),
@@ -780,10 +885,12 @@ Future<Map> editTags(Map song, BuildContext context) async {
 class DownSongsTab extends StatefulWidget {
   final List songs;
   final Function(Map item) onDelete;
+  final ScrollController scrollController;
   const DownSongsTab({
     Key? key,
     required this.songs,
     required this.onDelete,
+    required this.scrollController,
   }) : super(key: key);
 
   @override
@@ -837,10 +944,10 @@ class _DownSongsTabState extends State<DownSongsTab>
                 songsList: widget.songs,
                 offline: true,
                 fromDownloads: true,
-                recommend: false,
               ),
               Expanded(
                 child: ListView.builder(
+                  controller: widget.scrollController,
                   physics: const BouncingScrollPhysics(),
                   padding: const EdgeInsets.only(bottom: 10),
                   shrinkWrap: true,

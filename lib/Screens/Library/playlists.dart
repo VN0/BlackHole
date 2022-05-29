@@ -157,8 +157,10 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                       ),
                       onTap: () {
                         String code;
-                        launch(
-                          SpotifyApi().requestAuthorization(),
+                        launchUrl(
+                          Uri.parse(
+                            SpotifyApi().requestAuthorization(),
+                          ),
                         );
 
                         AppLinks().uriLinkStream.listen(
@@ -166,7 +168,7 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                             Uri uri,
                           ) async {
                             final link = uri.toString();
-                            closeWebView();
+                            closeInAppWebView();
                             if (link.contains('code=')) {
                               code = link.split('code=')[1];
                               await fetchPlaylists(
@@ -298,6 +300,53 @@ class _PlaylistScreenState extends State<PlaylistScreen> {
                                   data['tracks'] as List,
                                 ),
                               );
+                              setState(() {
+                                playlistNames = playlistNames;
+                              });
+                            } else {
+                              ShowSnackBar().showSnackBar(
+                                context,
+                                AppLocalizations.of(context)!.failedImport,
+                              );
+                            }
+                          },
+                        );
+                      },
+                    ),
+                    ListTile(
+                      title: Text(AppLocalizations.of(context)!.importJioSaavn),
+                      leading: Card(
+                        elevation: 0,
+                        color: Colors.transparent,
+                        child: SizedBox.square(
+                          dimension: 50,
+                          child: Center(
+                            child: Icon(
+                              Icons.music_note_rounded,
+                              color: Theme.of(context).iconTheme.color,
+                            ),
+                          ),
+                        ),
+                      ),
+                      onTap: () async {
+                        await showTextInputDialog(
+                          context: context,
+                          title:
+                              AppLocalizations.of(context)!.enterPlaylistLink,
+                          initialText: '',
+                          keyboardType: TextInputType.url,
+                          onSubmitted: (value) async {
+                            final String link = value.trim();
+                            Navigator.pop(context);
+                            final Map data =
+                                await SearchAddPlaylist.addJioSaavnPlaylist(
+                              link,
+                            );
+
+                            if (data.isNotEmpty) {
+                              final String playName = data['title'].toString();
+                              addPlaylist(playName, data['tracks'] as List);
+                              playlistNames.add(playName);
                               setState(() {
                                 playlistNames = playlistNames;
                               });

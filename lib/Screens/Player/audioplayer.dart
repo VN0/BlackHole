@@ -85,14 +85,12 @@ class _PlayScreenState extends State<PlayScreen> {
       Hive.box('settings').get('repeatMode', defaultValue: 'None').toString();
   final bool enforceRepeat =
       Hive.box('settings').get('enforceRepeat', defaultValue: false) as bool;
-  final bool useImageColor =
-      Hive.box('settings').get('useImageColor', defaultValue: true) as bool;
+  final String gradientType = Hive.box('settings')
+      .get('gradientType', defaultValue: 'halfDark')
+      .toString();
   final bool getLyricsOnline =
       Hive.box('settings').get('getLyricsOnline', defaultValue: true) as bool;
-  final bool useFullScreenGradient = Hive.box('settings')
-      .get('useFullScreenGradient', defaultValue: false) as bool;
-  final bool useDominantAndDarkerColors = Hive.box('settings')
-      .get('useDominantAndDarkerColors', defaultValue: false) as bool;
+
   List<MediaItem> globalQueue = [];
   int globalIndex = 0;
   List response = [];
@@ -327,13 +325,17 @@ class _PlayScreenState extends State<PlayScreen> {
                       mediaItem.artUri!.toFilePath(),
                     ),
                   ),
-                  useDominantAndDarkerColors: useDominantAndDarkerColors,
+                  // useDominantAndDarkerColors: gradientType == 'halfLight' ||
+                  //     gradientType == 'fullLight' ||
+                  //     gradientType == 'fullMix',
                 ).then((value) => updateBackgroundColors(value))
               : getColors(
                   imageProvider: CachedNetworkImageProvider(
                     mediaItem.artUri.toString(),
                   ),
-                  useDominantAndDarkerColors: useDominantAndDarkerColors,
+                  // useDominantAndDarkerColors: gradientType == 'halfLight' ||
+                  //     gradientType == 'fullLight' ||
+                  //     gradientType == 'fullMix',
                 ).then((value) => updateBackgroundColors(value));
           return ValueListenableBuilder(
             valueListenable: gradientColor,
@@ -382,7 +384,7 @@ class _PlayScreenState extends State<PlayScreen> {
                       onSelected: (int? value) {
                         if (value == 10) {
                           final Map details =
-                              MediaItemConverter.mediaItemtoMap(mediaItem);
+                              MediaItemConverter.mediaItemToMap(mediaItem);
                           details['duration'] =
                               '${int.parse(details["duration"].toString()) ~/ 60}:${int.parse(details["duration"].toString()) % 60}';
                           // style: Theme.of(context).textTheme.caption,
@@ -469,10 +471,12 @@ class _PlayScreenState extends State<PlayScreen> {
                           );
                         }
                         if (value == 3) {
-                          launch(
-                            mediaItem.genre == 'YouTube'
-                                ? 'https://youtube.com/watch?v=${mediaItem.id}'
-                                : 'https://www.youtube.com/results?search_query=${mediaItem.title} by ${mediaItem.artist}',
+                          launchUrl(
+                            Uri.parse(
+                              mediaItem.genre == 'YouTube'
+                                  ? 'https://youtube.com/watch?v=${mediaItem.id}'
+                                  : 'https://www.youtube.com/results?search_query=${mediaItem.title} by ${mediaItem.artist}',
+                            ),
                           );
                         }
                         if (value == 1) {
@@ -780,15 +784,16 @@ class _PlayScreenState extends State<PlayScreen> {
                 duration: const Duration(milliseconds: 600),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: !useImageColor
+                    begin: gradientType == 'simple'
                         ? Alignment.topLeft
                         : Alignment.topCenter,
-                    end: !useImageColor
+                    end: gradientType == 'simple'
                         ? Alignment.bottomRight
-                        : !useFullScreenGradient
+                        : (gradientType == 'halfLight' ||
+                                gradientType == 'halfDark')
                             ? Alignment.center
                             : Alignment.bottomCenter,
-                    colors: !useImageColor
+                    colors: gradientType == 'simple'
                         ? Theme.of(context).brightness == Brightness.dark
                             ? currentTheme.getBackGradient()
                             : [
@@ -797,12 +802,15 @@ class _PlayScreenState extends State<PlayScreen> {
                               ]
                         : Theme.of(context).brightness == Brightness.dark
                             ? [
-                                value?[0] ?? Colors.grey[900]!,
-                                if (!useDominantAndDarkerColors ||
-                                    !useFullScreenGradient)
-                                  Colors.black
+                                if (gradientType == 'halfDark' ||
+                                    gradientType == 'fullDark')
+                                  value?[1] ?? Colors.grey[900]!
                                 else
+                                  value?[0] ?? Colors.grey[900]!,
+                                if (gradientType == 'fullMix')
                                   value?[1] ?? Colors.black
+                                else
+                                  Colors.black
                               ]
                             : [
                                 value?[0] ?? const Color(0xfff5f9ff),
@@ -1120,7 +1128,7 @@ class ControlButtons extends StatelessWidget {
                 : DownloadButton(
                     size: 20.0,
                     icon: 'download',
-                    data: MediaItemConverter.mediaItemtoMap(mediaItem),
+                    data: MediaItemConverter.mediaItemToMap(mediaItem),
                   );
           default:
             break;
@@ -1604,6 +1612,7 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                         }
                       },
                 child: Stack(
+                  alignment: Alignment.center,
                   children: [
                     Card(
                       elevation: 10.0,
@@ -1614,8 +1623,7 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                       child:
                           widget.mediaItem.artUri.toString().startsWith('file')
                               ? Image(
-                                  fit: BoxFit.cover,
-                                  height: widget.width * 0.85,
+                                  fit: BoxFit.contain,
                                   width: widget.width * 0.85,
                                   gaplessPlayback: true,
                                   image: FileImage(
@@ -1625,7 +1633,7 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                   ),
                                 )
                               : CachedNetworkImage(
-                                  fit: BoxFit.cover,
+                                  fit: BoxFit.contain,
                                   errorWidget: (BuildContext context, _, __) =>
                                       const Image(
                                     fit: BoxFit.cover,
@@ -1637,7 +1645,7 @@ class _ArtWorkWidgetState extends State<ArtWorkWidget> {
                                     image: AssetImage('assets/cover.jpg'),
                                   ),
                                   imageUrl: widget.mediaItem.artUri.toString(),
-                                  height: widget.width * 0.85,
+                                  width: widget.width * 0.85,
                                 ),
                     ),
                     ValueListenableBuilder(
@@ -2036,12 +2044,12 @@ class NameNControls extends StatelessWidget {
                                     icon: icons[index],
                                     tooltip:
                                         'Repeat ${texts[(index + 1) % texts.length]}',
-                                    onPressed: () {
-                                      Hive.box('settings').put(
+                                    onPressed: () async {
+                                      await Hive.box('settings').put(
                                         'repeatMode',
                                         texts[(index + 1) % texts.length],
                                       );
-                                      audioHandler.setRepeatMode(
+                                      await audioHandler.setRepeatMode(
                                         cycleModes[
                                             (cycleModes.indexOf(repeatMode) +
                                                     1) %
@@ -2054,7 +2062,7 @@ class NameNControls extends StatelessWidget {
                               if (!offline)
                                 DownloadButton(
                                   size: 25.0,
-                                  data: MediaItemConverter.mediaItemtoMap(
+                                  data: MediaItemConverter.mediaItemToMap(
                                     mediaItem,
                                   ),
                                 )

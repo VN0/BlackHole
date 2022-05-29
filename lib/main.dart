@@ -17,6 +17,7 @@
  * Copyright (c) 2021-2022, Ankit Sangwan
  */
 
+import 'dart:async';
 import 'dart:io';
 
 import 'package:audio_service/audio_service.dart';
@@ -43,6 +44,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get_it/get_it.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -132,11 +134,18 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   Locale _locale = const Locale('en', '');
+  late StreamSubscription _intentDataStreamSubscription;
+  final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+  @override
+  void dispose() {
+    _intentDataStreamSubscription.cancel();
+    super.dispose();
+  }
 
   @override
   void initState() {
     super.initState();
-    callIntent();
     final String lang =
         Hive.box('settings').get('lang', defaultValue: 'English') as String;
     final Map<String, String> codes = {
@@ -146,6 +155,7 @@ class _MyAppState extends State<MyApp> {
       'English': 'en',
       'French': 'fr',
       'German': 'de',
+      'Hebrew': 'he',
       'Hindi': 'hi',
       'Indonesian': 'id',
       'Portuguese': 'pt',
@@ -153,16 +163,31 @@ class _MyAppState extends State<MyApp> {
       'Spanish': 'es',
       'Tamil': 'ta',
       'Turkish': 'tr',
+      'Ukrainian': 'uk',
+      'Urdu': 'ur',
     };
     _locale = Locale(codes[lang]!);
 
     AppTheme.currentTheme.addListener(() {
       setState(() {});
     });
-  }
 
-  Future<void> callIntent() async {
-    await NativeMethod.handleIntent();
+    // For sharing or opening urls/text coming from outside the app while the app is in the memory
+    _intentDataStreamSubscription = ReceiveSharingIntent.getTextStream().listen(
+      (String value) {
+        handleSharedText(value, navigatorKey);
+      },
+      onError: (err) {
+        // print("ERROR in getTextStream: $err");
+      },
+    );
+
+    // For sharing or opening urls/text coming from outside the app while the app is closed
+    ReceiveSharingIntent.getInitialText().then(
+      (String? value) {
+        if (value != null) handleSharedText(value, navigatorKey);
+      },
+    );
   }
 
   void setLocale(Locale value) {
@@ -225,6 +250,7 @@ class _MyAppState extends State<MyApp> {
         Locale('en', ''), // English, no country code
         Locale('fr', ''), // French
         Locale('de', ''), // German
+        Locale('he', ''), // Hebrew
         Locale('hi', ''), // Hindi
         Locale('id', ''), // Indonesian
         Locale('pt', ''), // Portuguese
@@ -232,6 +258,8 @@ class _MyAppState extends State<MyApp> {
         Locale('es', ''), // Spanish
         Locale('ta', ''), // Tamil
         Locale('tr', ''), // Turkish
+        Locale('uk', ''), // Ukrainian
+        Locale('ur', ''), // Urdu
       ],
       routes: {
         '/': (context) => initialFuntion(),
@@ -242,10 +270,10 @@ class _MyAppState extends State<MyApp> {
         '/nowplaying': (context) => NowPlaying(),
         '/recent': (context) => RecentlyPlayed(),
         '/downloads': (context) => const Downloads(),
-        // '/featured':
       },
+      navigatorKey: navigatorKey,
       onGenerateRoute: (RouteSettings settings) {
-        return HandleRoute().handleRoute(settings.name);
+        return HandleRoute.handleRoute(settings.name);
       },
     );
   }

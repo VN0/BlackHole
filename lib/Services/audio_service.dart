@@ -43,10 +43,13 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
 
   late AudioPlayer? _player;
   late String preferredQuality;
+  late bool resetOnSkip;
+  // late String? stationId = '';
+  // late List<String> stationNames = [];
+  // late String stationType = 'entity';
   // late bool cacheSong;
   final _equalizer = AndroidEqualizer();
 
-  int? index;
   Box downloadsBox = Hive.box('downloads');
 
   final BehaviorSubject<List<MediaItem>> _recentSubject =
@@ -125,6 +128,8 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     preferredQuality = Hive.box('settings')
         .get('streamingQuality', defaultValue: '96 kbps')
         .toString();
+    resetOnSkip =
+        Hive.box('settings').get('resetOnSkip', defaultValue: false) as bool;
     // cacheSong =
     //     Hive.box('settings').get('cacheSong', defaultValue: false) as bool;
     recommend =
@@ -147,8 +152,13 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
         _recentSubject.add([item]);
 
         if (recommend && item.extras!['autoplay'] as bool) {
-          Future.delayed(const Duration(seconds: 5), () async {
+          Future.delayed(const Duration(seconds: 1), () async {
             final List value = await SaavnAPI().getReco(item.id);
+
+            // final int index = queue.value.indexOf(item);
+            // final int queueLength = await queue.length;
+            // final List value = await SaavnAPI().getRadioSongs(
+            //     stationId: stationId!, count: queueLength - index - 20);
 
             for (int i = 0; i < value.length; i++) {
               final element = MediaItemConverter.mapToMediaItem(
@@ -185,6 +195,9 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
 
     _player!.shuffleModeEnabledStream
         .listen((enabled) => _broadcastState(_player!.playbackEvent));
+
+    _player!.loopModeStream
+        .listen((event) => _broadcastState(_player!.playbackEvent));
 
     _player!.processingStateStream.listen((state) {
       if (state == ProcessingState.completed) {
@@ -332,7 +345,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     List recentList = await Hive.box('cache')
         .get('recentSongs', defaultValue: [])?.toList() as List;
 
-    final Map item = MediaItemConverter.mediaItemtoMap(mediaitem);
+    final Map item = MediaItemConverter.mediaItemToMap(mediaitem);
     recentList.insert(0, item);
 
     final jsonList = recentList.map((item) => jsonEncode(item)).toList();
@@ -347,7 +360,7 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
 
   Future<void> addLastQueue(List<MediaItem> queue) async {
     final lastQueue =
-        queue.map((item) => MediaItemConverter.mediaItemtoMap(item)).toList();
+        queue.map((item) => MediaItemConverter.mediaItemToMap(item)).toList();
     Hive.box('cache').put('lastQueue', lastQueue);
   }
 
@@ -371,6 +384,25 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
     await _playlist.clear();
     await _playlist.addAll(_itemsToSources(newQueue));
     addLastQueue(newQueue);
+    // stationId = '';
+    // stationNames = newQueue.map((e) => e.id).toList();
+    // SaavnAPI()
+    //     .createRadio(names: stationNames, stationType: stationType)
+    //     .then((value) async {
+    //   stationId = value;
+    //   final List songsList = await SaavnAPI()
+    //       .getRadioSongs(stationId: stationId!, count: 20 - newQueue.length);
+
+    //   for (int i = 0; i < songsList.length; i++) {
+    //     final element = MediaItemConverter.mapToMediaItem(
+    //       songsList[i] as Map,
+    //       addedByAutoplay: true,
+    //     );
+    //     if (!queue.value.contains(element)) {
+    //       addQueueItem(element);
+    //     }
+    //   }
+    // });
   }
 
   @override
@@ -399,7 +431,19 @@ class AudioPlayerHandlerImpl extends BaseAudioHandler
   Future<void> skipToNext() => _player!.seekToNext();
 
   @override
-  Future<void> skipToPrevious() => _player!.seekToPrevious();
+  Future<void> skipToPrevious() async {
+    resetOnSkip =
+        Hive.box('settings').get('resetOnSkip', defaultValue: false) as bool;
+    if (resetOnSkip) {
+      if ((_player?.position.inSeconds ?? 5) <= 5) {
+        _player!.seekToPrevious();
+      } else {
+        _player!.seek(Duration.zero);
+      }
+    } else {
+      _player!.seekToPrevious();
+    }
+  }
 
   @override
   Future<void> skipToQueueItem(int index) async {

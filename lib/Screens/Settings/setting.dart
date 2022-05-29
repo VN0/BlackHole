@@ -30,6 +30,7 @@ import 'package:blackhole/Helpers/countrycodes.dart';
 import 'package:blackhole/Helpers/picker.dart';
 import 'package:blackhole/Helpers/supabase.dart';
 import 'package:blackhole/Screens/Home/saavn.dart' as home_screen;
+import 'package:blackhole/Screens/Settings/player_gradient.dart';
 import 'package:blackhole/Screens/Top Charts/top.dart' as top_screen;
 import 'package:blackhole/Services/ext_storage_provider.dart';
 import 'package:blackhole/main.dart';
@@ -1265,57 +1266,32 @@ class _SettingPageState extends State<SettingPage> {
                             ),
                           ),
                         ),
-                        BoxSwitchTile(
+                        ListTile(
                           title: Text(
                             AppLocalizations.of(
                               context,
                             )!
-                                .useDominant,
+                                .playerScreenBackground,
                           ),
                           subtitle: Text(
                             AppLocalizations.of(
                               context,
                             )!
-                                .useDominantSub,
+                                .playerScreenBackgroundSub,
                           ),
-                          keyName: 'useImageColor',
-                          defaultValue: true,
-                          isThreeLine: false,
+                          dense: true,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              PageRouteBuilder(
+                                opaque: false,
+                                pageBuilder: (_, __, ___) =>
+                                    const PlayerGradientSelection(),
+                              ),
+                            );
+                          },
                         ),
-                        BoxSwitchTile(
-                          title: Text(
-                            AppLocalizations.of(
-                              context,
-                            )!
-                                .useDominantFullScreen,
-                          ),
-                          subtitle: Text(
-                            AppLocalizations.of(
-                              context,
-                            )!
-                                .useDominantFullScreenSub,
-                          ),
-                          keyName: 'useFullScreenGradient',
-                          defaultValue: false,
-                          isThreeLine: true,
-                        ),
-                        BoxSwitchTile(
-                          title: Text(
-                            AppLocalizations.of(
-                              context,
-                            )!
-                                .useDominantAndDarkerColors,
-                          ),
-                          subtitle: Text(
-                            AppLocalizations.of(
-                              context,
-                            )!
-                                .useDominantAndDarkerColorsSub,
-                          ),
-                          keyName: 'useDominantAndDarkerColors',
-                          defaultValue: false,
-                          isThreeLine: true,
-                        ),
+
                         // BoxSwitchTile(
                         //   title: Text(
                         //     AppLocalizations.of(
@@ -2043,6 +2019,22 @@ class _SettingPageState extends State<SettingPage> {
                             AppLocalizations.of(
                               context,
                             )!
+                                .resetOnSkip,
+                          ),
+                          subtitle: Text(
+                            AppLocalizations.of(
+                              context,
+                            )!
+                                .resetOnSkipSub,
+                          ),
+                          keyName: 'resetOnSkip',
+                          defaultValue: false,
+                        ),
+                        BoxSwitchTile(
+                          title: Text(
+                            AppLocalizations.of(
+                              context,
+                            )!
                                 .enforceRepeat,
                           ),
                           subtitle: Text(
@@ -2455,6 +2447,7 @@ class _SettingPageState extends State<SettingPage> {
                                 'English': 'en',
                                 'French': 'fr',
                                 'German': 'de',
+                                'Hebrew': 'he',
                                 'Hindi': 'hi',
                                 'Indonesian': 'id',
                                 'Portuguese': 'pt',
@@ -2462,6 +2455,8 @@ class _SettingPageState extends State<SettingPage> {
                                 'Spanish': 'es',
                                 'Tamil': 'ta',
                                 'Turkish': 'tr',
+                                'Ukrainian': 'uk',
+                                'Urdu': 'ur',
                               };
                               if (newValue != null) {
                                 setState(
@@ -2484,6 +2479,7 @@ class _SettingPageState extends State<SettingPage> {
                               'English',
                               'French',
                               'German',
+                              'Hebrew',
                               'Hindi',
                               'Indonesian',
                               'Portuguese',
@@ -2491,6 +2487,8 @@ class _SettingPageState extends State<SettingPage> {
                               'Spanish',
                               'Tamil',
                               'Turkish',
+                              'Ukrainian',
+                              'Urdu',
                             ].map<DropdownMenuItem<String>>((String value) {
                               return DropdownMenuItem<String>(
                                 value: value,
@@ -3525,15 +3523,23 @@ class _SettingPageState extends State<SettingPage> {
                                       onPressed: () {
                                         Navigator.pop(context);
                                         if (abis!.contains('arm64-v8a')) {
-                                          launch(value['arm64-v8a'] as String);
+                                          launchUrl(
+                                            Uri.parse(
+                                              value['arm64-v8a'] as String,
+                                            ),
+                                          );
                                         } else {
                                           if (abis.contains('armeabi-v7a')) {
-                                            launch(
-                                              value['armeabi-v7a'] as String,
+                                            launchUrl(
+                                              Uri.parse(
+                                                value['armeabi-v7a'] as String,
+                                              ),
                                             );
                                           } else {
-                                            launch(
-                                              value['universal'] as String,
+                                            launchUrl(
+                                              Uri.parse(
+                                                value['universal'] as String,
+                                              ),
                                             );
                                           }
                                         }
@@ -3595,7 +3601,11 @@ class _SettingPageState extends State<SettingPage> {
                           ),
                           dense: true,
                           onTap: () {
-                            launch('https://www.buymeacoffee.com/ankitsangwan');
+                            launchUrl(
+                              Uri.parse(
+                                'https://www.buymeacoffee.com/ankitsangwan',
+                              ),
+                            );
                           },
                         ),
                         ListTile(
@@ -3616,7 +3626,7 @@ class _SettingPageState extends State<SettingPage> {
                           onTap: () {
                             const String upiUrl =
                                 'upi://pay?pa=ankit.sangwan.5688@oksbi&pn=BlackHole';
-                            launch(upiUrl);
+                            launchUrl(Uri.parse(upiUrl));
                           },
                           onLongPress: () {
                             copyToClipboard(
@@ -3695,8 +3705,10 @@ class _SettingPageState extends State<SettingPage> {
                                                   .gmail,
                                               onPressed: () {
                                                 Navigator.pop(context);
-                                                launch(
-                                                  'https://mail.google.com/mail/?extsrc=mailto&url=mailto%3A%3Fto%3Dblackholeyoucantescape%40gmail.com%26subject%3DRegarding%2520Mobile%2520App',
+                                                launchUrl(
+                                                  Uri.parse(
+                                                    'https://mail.google.com/mail/?extsrc=mailto&url=mailto%3A%3Fto%3Dblackholeyoucantescape%40gmail.com%26subject%3DRegarding%2520Mobile%2520App',
+                                                  ),
                                                 );
                                               },
                                             ),
@@ -3722,8 +3734,10 @@ class _SettingPageState extends State<SettingPage> {
                                                   .tg,
                                               onPressed: () {
                                                 Navigator.pop(context);
-                                                launch(
-                                                  'https://t.me/joinchat/fHDC1AWnOhw0ZmI9',
+                                                launchUrl(
+                                                  Uri.parse(
+                                                    'https://t.me/joinchat/fHDC1AWnOhw0ZmI9',
+                                                  ),
                                                 );
                                               },
                                             ),
@@ -3749,8 +3763,10 @@ class _SettingPageState extends State<SettingPage> {
                                                   .insta,
                                               onPressed: () {
                                                 Navigator.pop(context);
-                                                launch(
-                                                  'https://instagram.com/sangwan5688',
+                                                launchUrl(
+                                                  Uri.parse(
+                                                    'https://instagram.com/sangwan5688',
+                                                  ),
                                                 );
                                               },
                                             ),
@@ -3808,8 +3824,10 @@ class _SettingPageState extends State<SettingPage> {
                                                   .tgGp,
                                               onPressed: () {
                                                 Navigator.pop(context);
-                                                launch(
-                                                  'https://t.me/joinchat/fHDC1AWnOhw0ZmI9',
+                                                launchUrl(
+                                                  Uri.parse(
+                                                    'https://t.me/joinchat/fHDC1AWnOhw0ZmI9',
+                                                  ),
                                                 );
                                               },
                                             ),
@@ -3835,8 +3853,10 @@ class _SettingPageState extends State<SettingPage> {
                                                   .tgCh,
                                               onPressed: () {
                                                 Navigator.pop(context);
-                                                launch(
-                                                  'https://t.me/blackhole_official',
+                                                launchUrl(
+                                                  Uri.parse(
+                                                    'https://t.me/blackhole_official',
+                                                  ),
                                                 );
                                               },
                                             ),
@@ -3981,16 +4001,20 @@ class SpotifyCountry {
               return ListTileTheme(
                 selectedColor: Theme.of(context).colorScheme.secondary,
                 child: ListTile(
-                  contentPadding: const EdgeInsets.only(
-                    left: 25.0,
-                    right: 25.0,
-                  ),
                   title: Text(
                     countries[idx],
                   ),
-                  trailing: region == countries[idx]
-                      ? const Icon(Icons.check_rounded)
-                      : const SizedBox(),
+                  leading: Radio(
+                    value: countries[idx],
+                    groupValue: region,
+                    onChanged: (value) {
+                      top_screen.items = [];
+                      region = countries[idx];
+                      top_screen.fetched = false;
+                      Hive.box('settings').put('region', region);
+                      Navigator.pop(context);
+                    },
+                  ),
                   selected: region == countries[idx],
                   onTap: () {
                     top_screen.items = [];

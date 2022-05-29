@@ -24,39 +24,73 @@ import 'package:blackhole/Screens/Player/audioplayer.dart';
 import 'package:flutter/material.dart';
 import 'package:on_audio_query/on_audio_query.dart';
 
+// ignore: avoid_classes_with_only_static_members
 class HandleRoute {
-  Route? handleRoute(String? url) {
-    final List<String> paths = url?.replaceAll('?', '/').split('/') ?? [];
-    if (paths.isNotEmpty &&
-        paths.length > 3 &&
-        (paths[1] == 'song' || paths[1] == 'album' || paths[1] == 'featured') &&
-        paths[3].trim() != '') {
-      return PageRouteBuilder(
-        opaque: false,
-        pageBuilder: (_, __, ___) => SongUrlHandler(
-          token: paths[3],
-          type: paths[1] == 'featured' ? 'playlist' : paths[1],
-        ),
-      );
+  static Route? handleRoute(String? url) {
+    if (url == null) return null;
+    if (url.contains('saavn')) {
+      final RegExpMatch? songResult =
+          RegExp(r'.*saavn.com.*?\/(song)\/.*?\/(.*)').firstMatch('$url?');
+      if (songResult != null) {
+        return PageRouteBuilder(
+          opaque: false,
+          pageBuilder: (_, __, ___) => SaavnUrlHandler(
+            token: songResult[2]!,
+            type: songResult[1]!,
+          ),
+        );
+      } else {
+        final RegExpMatch? playlistResult = RegExp(
+          r'.*saavn.com\/?s?\/(featured|playlist|album)\/.*\/(.*_)?[?/]',
+        ).firstMatch('$url?');
+        if (playlistResult != null) {
+          return PageRouteBuilder(
+            opaque: false,
+            pageBuilder: (_, __, ___) => SaavnUrlHandler(
+              token: playlistResult[2]!,
+              type: playlistResult[1]!,
+            ),
+          );
+        }
+      }
+    } else if (url.contains('spotify')) {
+      // TODO: Add support for spotify links
+      // print('it is a spotify link');
+    } else if (url.contains('youtube')) {
+      // TODO: Add support for youtube links
+      // print('it is an youtube link');
+      final RegExpMatch? videoId =
+          RegExp(r'.*\.com\/watch\?v=(.*)\?').firstMatch('$url?');
+      if (videoId != null) {
+        // TODO: Extract audio data and play audio
+        // return PageRouteBuilder(
+        //   opaque: false,
+        //   pageBuilder: (_, __, ___) => YtUrlHandler(
+        //     id: songResult[1]!,
+        //     type: song,
+        //   ),
+        // );
+      }
     } else {
-      if (int.tryParse(paths.last) != null) {
+      final RegExpMatch? fileResult =
+          RegExp(r'\/[0-9]+\/([0-9]+)\/').firstMatch('$url/');
+      if (fileResult != null) {
         return PageRouteBuilder(
           opaque: false,
           pageBuilder: (_, __, ___) => OfflinePlayHandler(
-            id: paths.last,
+            id: fileResult[1]!,
           ),
         );
       }
     }
-
     return null;
   }
 }
 
-class SongUrlHandler extends StatelessWidget {
+class SaavnUrlHandler extends StatelessWidget {
   final String token;
   final String type;
-  const SongUrlHandler({Key? key, required this.token, required this.type})
+  const SaavnUrlHandler({Key? key, required this.token, required this.type})
       : super(key: key);
 
   @override
@@ -78,7 +112,7 @@ class SongUrlHandler extends StatelessWidget {
           ),
         );
       }
-      if (type == 'album' || type == 'playlist') {
+      if (type == 'album' || type == 'playlist' || type == 'featured') {
         Navigator.pushReplacement(
           context,
           PageRouteBuilder(
