@@ -656,5 +656,9 @@
   "playerScreenBackgroundSub": "Seçilen arka plan oynatıcı ekranında gösterilecektir",
   "@playerScreenBackgroundSub": {},
   "importJioSaavn": "JioSaavn'dan içe aktar",
-  "@importJioSaavn": {}
+  "@importJioSaavn": {},
+  "topCharts": "En İyiler",
+  "@topCharts": {},
+  "playRadio": "Radyo çal",
+  "@playRadio": {}
 }
